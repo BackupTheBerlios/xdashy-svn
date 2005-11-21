@@ -1,0 +1,25 @@
+xdashy xbox replacement dashboard
+=================================
+
+Legal stuff:
+- This program is free software; see COPYING for details
+
+Compiling:
+- To compile the linux version (for testing):
+	make
+
+- To compile the xbox version:
+	make -f Makefile.xbox
+
+Using:
+	Run linux version from the current dir:
+	./xdashy
+
+	Run xbox version as usual
+
+Setup:
+	You can change the menu layout and the dashboard skin.
+	Just edit data/menu.config and data/dash.config
+
+Contact:
+	msamurai@freemail.gr
