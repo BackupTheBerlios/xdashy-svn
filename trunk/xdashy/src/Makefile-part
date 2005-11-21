@@ -1,0 +1,3 @@
+OBJ += src/menu.o src/menuparser.o src/main.o src/gfx.o\
+src/xdashy.o src/input.o src/autoadd.o
+
