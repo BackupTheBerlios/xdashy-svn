@@ -86,24 +86,47 @@ static void get_color(MenuItem *item, float *r, float *g, float *b)
 	*b = B;
 }
 
-int xdashy_init()
+int xdashy_load_settings()
 {
-	MenuItem *item, *item2;
+	MenuItem *item=0, *item2=0, *config=0;
 	
-	/* load settings */
-	root_menu = MenuItem_load("data/menu.config");
-	if (! root_menu)
+	if (root_menu)
+		del_MenuItem(root_menu);
+	if (settings)
+		del_MenuItem(settings);
+	
+	config = MenuItem_load("data/xdashy.config");
+	if (! config)
 	{
-		fprintf(stderr, "Failed to open \"data/menu.config\"\n");
+		fprintf(stderr, "Failed to open \"data/xdashy.config\"\n");
 		return 0;
 	}
 
-	settings = MenuItem_load("data/dash.config");
-	if (! settings)
+	item = MenuItem_get_item(config, "menu");
+	item2 = MenuItem_get_item(config, "skin");
+
+	if (! item || ! item2)
 	{
-		fprintf(stderr, "Failed to open \"data/dash.config\"\n");
+		fprintf(stderr, "Bad \"xdashy.config\" file\n");
 		return 0;
 	}
+	
+	/* load settings */
+	root_menu = MenuItem_load(item->launch);
+	if (! root_menu)
+	{
+		fprintf(stderr, "Failed to open \"%s\"\n", item->launch);
+		return 0;
+	}
+
+	settings = MenuItem_load(item2->launch);
+	if (! settings)
+	{
+		fprintf(stderr, "Failed to open \"%s\"\n", item2->launch);
+		return 0;
+	}
+	
+	del_MenuItem(config);
 
 	item = MenuItem_get_item(settings, "background");
 	if (!item) strcpy(settings_background, "back.png");
@@ -176,6 +199,16 @@ int xdashy_init()
 					&settings_bar_r, 
 					&settings_bar_g, 
 					&settings_bar_b);
+	return 1;
+}
+
+int xdashy_init()
+{	
+	if (! xdashy_load_settings())
+	{
+		fprintf(stderr, "Failed to load xdashy settings\n");
+		return 0;
+	}
 	
 	return init_gfx(settings_background, settings_font_file,
 					settings_font_height);
@@ -311,8 +344,10 @@ void xdashy_render()
 
 void xdashy_close()
 {
-	del_MenuItem(root_menu);
-	del_MenuItem(settings);
+	if (root_menu)
+		del_MenuItem(root_menu);
+	if (settings)
+		del_MenuItem(settings);
 	
 	close_gfx();
 }
