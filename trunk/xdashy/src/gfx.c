@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /* gfx.c
  */
 
+#include <stdlib.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -63,12 +64,16 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height)
 #endif /* ENABLE_XBOX */
 	if ( pscreen == NULL ) 
 	{
-        fprintf(stderr, "Couldn't set video mode: %s\n",SDL_GetError());
+        fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
         return 0;
     }
 
 	TTF_Init();
-	font = TTF_OpenFont(font_file, font_height);
+	if(!(font = TTF_OpenFont(font_file, font_height))) {
+		fprintf(stderr, "failed to open font: %s\n", font_file);
+		return 0;
+	}
+	
 	settings_font_height = TTF_FontHeight(font);
 	
 	return 1;

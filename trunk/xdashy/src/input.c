@@ -35,39 +35,52 @@ int process_input()
 			case SDL_KEYUP:
 				switch (event.key.keysym.sym)
 				{
-					case SDLK_ESCAPE:
-						return 0;
-						break;
-					case SDLK_UP:
-						xdashy_move_up();
-						break;
-					case SDLK_DOWN:
-						xdashy_move_down();
-						break;
-					case SDLK_LEFT:
-						xdashy_move_back();
-						break;
-					case SDLK_RIGHT:
-					case SDLK_RETURN:
-						xdashy_execute();
-						break;
+				case SDLK_ESCAPE:
+					return 0;
+					break;
+
+				case SDLK_UP:
+					xdashy_move_up();
+					break;
+				
+				case SDLK_DOWN:
+					xdashy_move_down();
+					break;
+				
+				case SDLK_LEFT:
+					xdashy_move_back();
+					break;
+				
+				case SDLK_RIGHT:
+				case SDLK_RETURN:
+					xdashy_execute();
+					break;
+
+				default:
+					break;
 				}
 				break;
 			case SDL_JOYHATMOTION:
 				switch (event.jhat.value)
 				{
-					case SDL_HAT_UP:
-						xdashy_move_up();
-						break;
-					case SDL_HAT_DOWN:
-						xdashy_move_down();
-						break;
-					case SDL_HAT_LEFT:
-						xdashy_move_back();
-						break;
-					case SDL_HAT_RIGHT:
-						xdashy_execute();
-						break;
+				case SDL_HAT_UP:
+					xdashy_move_up();
+					break;
+				
+				case SDL_HAT_DOWN:
+					xdashy_move_down();
+					break;
+				
+				case SDL_HAT_LEFT:
+					xdashy_move_back();
+					break;
+				
+				case SDL_HAT_RIGHT:
+					xdashy_execute();
+					break;
+
+				default:
+					break;
 				}
 				break;
 		}

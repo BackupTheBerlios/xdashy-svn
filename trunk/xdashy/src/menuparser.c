@@ -21,11 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /* menuparser.c
  */
 
-#include "menu.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "menu.h"
+#include "autoadd.h"
 
-char buffer1[512];
+static char buffer1[512];
 
 static int get_text(char *buffer)
 {
@@ -174,7 +176,7 @@ MenuItem *MenuItem_load(const char *filename)
 {
 	FILE *fp;
 	char *buffer;
-	unsigned int len, i=0;
+	unsigned int len;
 	MenuItem *root = 0;
 	
 	fp = fopen(filename, "r");
