@@ -4,7 +4,7 @@ OBJ :=
 include src/Makefile-part
 
 CC := gcc
-CFLAGS := -g -O3 -std=gnu99 -pedantic -Wall `sdl-config --cflags` 
+CFLAGS := -g -std=gnu99 -pedantic -Wall `sdl-config --cflags` 
 LDFLAGS := `sdl-config --libs` -lSDL_ttf -lSDL_image -ljpeg -lpng -lz -lfreetype 
 
 .PHONY: all

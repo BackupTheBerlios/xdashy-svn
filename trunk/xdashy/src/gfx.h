@@ -32,4 +32,6 @@ void render_text(int x, int y, char *text, float r, float g, float b);
 void render_quad(int x, int y, int w, int h, float r, float g, float b);
 void set_clip_rect(int x, int y, int w, int h);
 
+void render_3d(int x, int y);
+
 #endif /* ndef _GFX_HEADER_ */

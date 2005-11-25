@@ -210,8 +210,7 @@ int xdashy_init()
 		return 0;
 	}
 	
-	return init_gfx(settings_background, settings_font_file,
-					settings_font_height);
+	return init_gfx(settings_background, settings_font_file, settings_font_height);
 }
 
 static void xdashy_perform_action(char *action)
@@ -340,6 +339,9 @@ void xdashy_render()
 	
 	/* remove clip rect */
 	set_clip_rect(0, 0, 640, 480);
+
+	/* render thingy */
+	render_3d(320, 120);
 }
 
 void xdashy_close()

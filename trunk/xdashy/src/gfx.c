@@ -22,9 +22,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
+#include "mini3d.h"
+#include "mini3d_rasterizer.h"
+
+#define REND_XSZ	240
+#define REND_YSZ	180
 
 SDL_Surface *pscreen=0;
 SDL_Surface *pbackground=0;
@@ -75,12 +81,25 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height)
 	}
 	
 	settings_font_height = TTF_FontHeight(font);
-	
+
+	/* initialize mini3d */
+	m3d_init();
+	m3d_viewport(0, 0, REND_XSZ, REND_YSZ);
+
+	m3d_clear_color(0.0, 0.0, 0.0);
+	m3d_clear_depth(1.0);
+
+	//m3d_enable(M3D_DEPTH_TEST);
+	//m3d_enable(M3D_LIGHTING);
+	//m3d_enable(M3D_LIGHT0);
+
 	return 1;
 }
 
 void close_gfx()
 {
+	m3d_destroy();
+	
 #ifdef ENABLE_XBOX
 	SDL_JoystickClose(joystick);
 #endif /* ENABLE_XBOX */
@@ -144,4 +163,98 @@ void set_clip_rect(int x, int y, int w, int h)
 	rect.h = h;
 
 	SDL_SetClipRect(pscreen, &rect);
+}
+
+void draw_cube(void) {	
+	m3d_begin(M3D_QUADS);
+
+	/* face +Z */
+	m3d_normal(0, 0, 1);
+	m3d_color3(1, 0, 0);
+	m3d_vertex(1, -1, 1);
+	m3d_vertex(-1, -1, 1);
+	m3d_vertex(-1, 1, 1);
+	m3d_vertex(1, 1, 1);
+
+	/* face -X */
+	m3d_normal(-1, 0, 0);
+	m3d_color3(0, 1, 0);
+	m3d_vertex(-1, -1, 1);
+	m3d_vertex(-1, -1, -1);
+	m3d_vertex(-1, 1, -1);
+	m3d_vertex(-1, 1, 1);
+
+	/* face -Z */
+	m3d_normal(0, 0, -1);
+	m3d_color3(0, 0, 1);
+	m3d_vertex(-1, 1, -1);
+	m3d_vertex(-1, -1, -1);
+	m3d_vertex(1, -1, -1);
+	m3d_vertex(1, 1, -1);
+
+	/* face +X */
+	m3d_normal(1, 0, 0);
+	m3d_color3(1, 1, 0);
+	m3d_vertex(1, 1, -1);
+	m3d_vertex(1, -1, -1);
+	m3d_vertex(1, -1, 1);
+	m3d_vertex(1, 1, 1);
+
+	/* face +Y */
+	m3d_normal(0, 1, 0);
+	m3d_color3(0, 1, 1);
+	m3d_vertex(1, 1, 1);
+	m3d_vertex(-1, 1, 1);
+	m3d_vertex(-1, 1, -1);
+	m3d_vertex(1, 1, -1);
+
+	/* face -Y */
+	m3d_normal(0, -1, 0);
+	m3d_color3(1, 0, 1);
+	m3d_vertex(-1, -1, -1);
+	m3d_vertex(-1, -1, 1);
+	m3d_vertex(1, -1, 1);
+	m3d_vertex(1, -1, -1);
+	
+	m3d_end();
+}
+
+void render_3d(int x, int y) {
+	int i, xspan, yspan;
+	uint32_t *rbuf, *fb;
+	float t = SDL_GetTicks() / 10.0f;
+	
+	m3d_clear(M3D_COLOR_BUFFER_BIT | M3D_DEPTH_BUFFER_BIT);
+
+	m3d_matrix_mode(M3D_MODELVIEW);
+	m3d_load_identity();
+	m3d_translate(0, 0, 10);
+	m3d_rotate(t, 1, 0, 0);
+	m3d_rotate(t, 0, 1, 0);
+
+	draw_cube();
+	
+	rbuf = m3d_get_pixel_data();
+
+	/* copy to SDL surface */
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_LockSurface(pscreen);
+	}
+
+	xspan = pscreen->w - x;
+	xspan = xspan > REND_XSZ ? REND_XSZ : xspan;
+
+	yspan = pscreen->h - y;
+	yspan = yspan > REND_YSZ ? REND_YSZ : yspan;
+
+	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
+	for(i=0; i<REND_YSZ; i++) {
+		memcpy(fb, rbuf, xspan * sizeof(uint32_t));
+		fb += pscreen->w;
+		rbuf += REND_XSZ;
+	}
+
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_UnlockSurface(pscreen);
+	}
 }

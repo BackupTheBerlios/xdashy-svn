@@ -1,3 +1,12 @@
-OBJ += src/menu.o src/menuparser.o src/main.o src/gfx.o\
-src/xdashy.o src/input.o src/autoadd.o
-
+OBJ += \
+	src/menu.o\
+	src/menuparser.o\
+	src/main.o\
+	src/gfx.o\
+	src/xdashy.o\
+	src/input.o\
+	src/autoadd.o\
+	src/color.o\
+	src/mini3d.o\
+	src/mini3d_rasterizer.o\
+	src/fixed_point.o
