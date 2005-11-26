@@ -16,7 +16,7 @@ inline static vec3 add(vec3 a, vec3 b);
 inline static vec3 sub(vec3 a, vec3 b);
 inline static vec3 mul(vec3 v, float s);
 inline static float dot(vec3 a, vec3 b);
-inline static void normalize(vec3 v);
+inline static vec3 normalize(vec3 v);
 inline static vec3 transform(vec3 v, float *m);
 static void mult_matrix(float *t, float *m1, float *m2);
 
@@ -67,7 +67,7 @@ void m3d_init(void) {
 	state.nx = state.ny = state.nz = 0;
 	state.tu = state.tv = 0;
 
-	state.lpos[0].x = 0.0f;
+	state.lpos[0].x = -50.0f;
 	state.lpos[0].y = 100.0f;
 	state.lpos[0].z = -100.0f;
 
@@ -354,9 +354,10 @@ static vec3 shade(vec3 vcs_pos, vec3 vcs_n) {
 		}
 
 		ldir = sub(state.lpos[i], vcs_pos);
-		normalize(ldir);
+		ldir = normalize(ldir);
 		
 		ndotl = dot(vcs_n, ldir);
+		if(ndotl < 0.0f) ndotl = 0.0f;
 		dif = mul(state.diffuse, ndotl);
 		
 		half.x = (view.x + ldir.x) * 0.5f;
@@ -364,6 +365,7 @@ static vec3 shade(vec3 vcs_pos, vec3 vcs_n) {
 		half.z = (view.z + ldir.z) * 0.5f;
 		
 		ndoth = dot(vcs_n, half);
+		if(ndoth < 0.0f) ndoth = 0.0f;
 		spec = mul(state.specular, ndoth);
 
 		col = add(col, dif);
@@ -393,7 +395,7 @@ void m3d_vertex(float x, float y, float z) {
 	v->v = state.tv;
 	
 	/* if lighting is enabled, modify the color */
-	if(state.s & M3D_LIGHTING) {
+	if(state.s & (1 << M3D_LIGHTING)) {
 		vec3 pos, normal, col;
 		
 		pos.x = x;
@@ -427,7 +429,7 @@ void m3d_vertex(float x, float y, float z) {
 	fixed width = fixedi(state.fb.x);
 	fixed height = fixedi(state.fb.y);
 	v->x = fixed_mul(v->x, width) + fixed_mul(width, fixed_half);
-	v->y = fixed_mul(v->y, height) + fixed_mul(height, fixed_half);
+	v->y = fixed_mul(height, fixed_half) - fixed_mul(v->y, height);
 
 	state.cur_vert = (state.cur_vert + 1) % prim_elem;
 
@@ -498,11 +500,12 @@ inline static float dot(vec3 a, vec3 b) {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-inline static void normalize(vec3 v) {
+inline static vec3 normalize(vec3 v) {
 	float len = (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 	v.x /= len;
 	v.y /= len;
 	v.z /= len;
+	return v;
 }
 
 inline static vec3 transform(vec3 v, float *m) {

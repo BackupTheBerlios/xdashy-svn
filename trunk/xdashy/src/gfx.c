@@ -93,8 +93,8 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height,
 	m3d_clear_depth(1.0);
 
 	m3d_enable(M3D_DEPTH_TEST);
-	//m3d_enable(M3D_LIGHTING);
-	//m3d_enable(M3D_LIGHT0);
+	m3d_enable(M3D_LIGHTING);
+	m3d_enable(M3D_LIGHT0);
 
 	return 1;
 }
@@ -175,50 +175,50 @@ void draw_cube(void) {
 	/* face +Z */
 	m3d_normal(0, 0, 1);
 	m3d_color4(1, 0, 0, a);
-	m3d_vertex(1, -1, 1);
-	m3d_vertex(-1, -1, 1);
-	m3d_vertex(-1, 1, 1);
 	m3d_vertex(1, 1, 1);
+	m3d_vertex(-1, 1, 1);
+	m3d_vertex(-1, -1, 1);
+	m3d_vertex(1, -1, 1);
 
 	/* face -X */
 	m3d_normal(-1, 0, 0);
 	m3d_color4(0, 1, 0, a);
-	m3d_vertex(-1, -1, 1);
-	m3d_vertex(-1, -1, -1);
-	m3d_vertex(-1, 1, -1);
 	m3d_vertex(-1, 1, 1);
+	m3d_vertex(-1, 1, -1);
+	m3d_vertex(-1, -1, -1);
+	m3d_vertex(-1, -1, 1);
 
 	/* face -Z */
 	m3d_normal(0, 0, -1);
 	m3d_color4(0, 0, 1, a);
-	m3d_vertex(-1, 1, -1);
-	m3d_vertex(-1, -1, -1);
-	m3d_vertex(1, -1, -1);
 	m3d_vertex(1, 1, -1);
+	m3d_vertex(1, -1, -1);
+	m3d_vertex(-1, -1, -1);
+	m3d_vertex(-1, 1, -1);
 
 	/* face +X */
 	m3d_normal(1, 0, 0);
 	m3d_color4(1, 1, 0, a);
-	m3d_vertex(1, 1, -1);
-	m3d_vertex(1, -1, -1);
-	m3d_vertex(1, -1, 1);
 	m3d_vertex(1, 1, 1);
+	m3d_vertex(1, -1, 1);
+	m3d_vertex(1, -1, -1);
+	m3d_vertex(1, 1, -1);
 
 	/* face +Y */
 	m3d_normal(0, 1, 0);
 	m3d_color4(0, 1, 1, a);
-	m3d_vertex(1, 1, 1);
-	m3d_vertex(-1, 1, 1);
-	m3d_vertex(-1, 1, -1);
 	m3d_vertex(1, 1, -1);
+	m3d_vertex(-1, 1, -1);
+	m3d_vertex(-1, 1, 1);
+	m3d_vertex(1, 1, 1);
 
 	/* face -Y */
 	m3d_normal(0, -1, 0);
 	m3d_color4(1, 0, 1, a);
-	m3d_vertex(-1, -1, -1);
-	m3d_vertex(-1, -1, 1);
-	m3d_vertex(1, -1, 1);
 	m3d_vertex(1, -1, -1);
+	m3d_vertex(1, -1, 1);
+	m3d_vertex(-1, -1, 1);
+	m3d_vertex(-1, -1, -1);
 	
 	m3d_end();
 }
