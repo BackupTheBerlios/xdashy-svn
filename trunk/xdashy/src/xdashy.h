@@ -34,4 +34,8 @@ void xdashy_execute();
 void xdashy_render();
 void xdashy_close();
 
+// This will only affect the font height in xdashy state. Not the actual
+// font height of the generated font.
+void xdashy_set_font_height(unsigned int h);
+
 #endif /* ndef _XDASHY_HEADER_ */

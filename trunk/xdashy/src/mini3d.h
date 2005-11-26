@@ -38,7 +38,7 @@ void m3d_viewport(int x, int y, int w, int h);
 uint32_t *m3d_get_pixel_data(void);
 
 /* clear */
-void m3d_clear_color(float r, float g, float b);
+void m3d_clear_color(float r, float g, float b, float a);
 void m3d_clear_depth(float d);
 void m3d_clear(unsigned int what);
 

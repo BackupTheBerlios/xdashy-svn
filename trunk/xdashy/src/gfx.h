@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef _GFX_HEADER_
 #define _GFX_HEADER_
 
-int init_gfx(const char *bg_file, const char *font_file, int font_height);
+int init_gfx(const char *bg_file, const char *font_file, int font_height, 
+				int fx_w, int fx_h);
 void render_background();
 void close_gfx();
 void gfx_flip();
@@ -32,6 +33,6 @@ void render_text(int x, int y, char *text, float r, float g, float b);
 void render_quad(int x, int y, int w, int h, float r, float g, float b);
 void set_clip_rect(int x, int y, int w, int h);
 
-void render_3d(int x, int y);
+void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int alpha_blend);
 
 #endif /* ndef _GFX_HEADER_ */

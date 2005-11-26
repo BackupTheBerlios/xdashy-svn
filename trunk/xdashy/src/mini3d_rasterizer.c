@@ -20,7 +20,7 @@
 
 struct edge {
 	int x;
-	fixed r, g, b;
+	fixed r, g, b, a;
 	fixed u, v;
 	fixed z;
 };
@@ -116,6 +116,7 @@ void m3d_draw_polygon(struct vertex *points, int count) {
 #endif
 #ifdef INTERP_COL
 		// interpolate color
+		scan_fixed(v1->a, v1->y, v2->a, v2->y, offsetof(struct edge, a));
 		scan_fixed(v1->r, v1->y, v2->r, v2->y, offsetof(struct edge, r));
 		scan_fixed(v1->g, v1->y, v2->g, v2->y, offsetof(struct edge, g));
 		scan_fixed(v1->b, v1->y, v2->b, v2->y, offsetof(struct edge, b));
@@ -141,6 +142,7 @@ void m3d_draw_polygon(struct vertex *points, int count) {
 #endif
 #ifdef INTERP_COL
 	// interpolate color
+	scan_fixed(v1->a, v1->y, v2->a, v2->y, offsetof(struct edge, a));
 	scan_fixed(v1->r, v1->y, v2->r, v2->y, offsetof(struct edge, r));
 	scan_fixed(v1->g, v1->y, v2->g, v2->y, offsetof(struct edge, g));
 	scan_fixed(v1->b, v1->y, v2->b, v2->y, offsetof(struct edge, b));
@@ -160,6 +162,7 @@ void m3d_draw_polygon(struct vertex *points, int count) {
 	{
 		int y;
 		for(y=starty; y<endy; y++) {
+			right_edge[y].a = left_edge[y].a = points->a;
 			right_edge[y].r = left_edge[y].r = points->r;
 			right_edge[y].g = left_edge[y].g = points->g;
 			right_edge[y].b = left_edge[y].b = points->b;
@@ -242,10 +245,12 @@ static inline void fill_scanlines(int starty, int endy) {
 		fixed dx = fixedi(endx - startx);
 		
 		// color, z, u, v interpolation
+		fixed a = left_ptr->a;
 		fixed r = left_ptr->r;
 		fixed g = left_ptr->g;
 		fixed b = left_ptr->b;
 #ifdef INTERP_COL
+		fixed da = right_ptr->a - a;
 		fixed dr = right_ptr->r - r;
 		fixed dg = right_ptr->g - g;
 		fixed db = right_ptr->b - b;
@@ -261,10 +266,11 @@ static inline void fill_scanlines(int starty, int endy) {
 		fixed dv = right_ptr->v - v;
 #endif
 		
-		fixed rslope, gslope, bslope, zslope, uslope, vslope;
+		fixed rslope, gslope, bslope, aslope, zslope, uslope, vslope;
 
 		if(dx > 0) {
 #ifdef INTERP_COL
+			aslope = fixed_div(da, dx);
 			rslope = fixed_div(dr, dx);
 			gslope = fixed_div(dg, dx);
 			bslope = fixed_div(db, dx);
@@ -277,7 +283,7 @@ static inline void fill_scanlines(int starty, int endy) {
 			vslope = fixed_div(dv, dx);
 #endif
 		} else {
-			rslope = gslope = bslope = zslope = uslope = vslope = 0;
+			aslope = rslope = gslope = bslope = zslope = uslope = vslope = 0;
 		}
 
 		startx = MAX(startx, 0);
@@ -294,6 +300,7 @@ static inline void fill_scanlines(int starty, int endy) {
 #endif
 				
 				static fixed fixed_255 = fixedi(255);
+				int ia = fixed_int(fixed_mul(a, fixed_255));
 				int ir = fixed_int(fixed_mul(r, fixed_255));
 				int ig = fixed_int(fixed_mul(g, fixed_255));
 				int ib = fixed_int(fixed_mul(b, fixed_255));
@@ -307,6 +314,7 @@ static inline void fill_scanlines(int starty, int endy) {
 					ig = (ir * GET_G(texel)) >> 8;
 					ib = (ir * GET_B(texel)) >> 8;
 				} else {
+					ia = fixed_int(fixed_mul(a, fixed_255));
 					ir = fixed_int(fixed_mul(r, fixed_255));
 					ig = fixed_int(fixed_mul(g, fixed_255));
 					ib = fixed_int(fixed_mul(b, fixed_255));
@@ -314,7 +322,8 @@ static inline void fill_scanlines(int starty, int endy) {
 #endif
 				
 			
-				*cptr = PACK_COLOR24(ir, ig, ib);
+				*cptr = PACK_COLOR32(ia, ir, ig, ib);
+
 #ifdef INTERP_Z
 				if(*state & M3D_DEPTH_WRITE) *zptr = zval;
 			}
@@ -324,6 +333,7 @@ static inline void fill_scanlines(int starty, int endy) {
 
 			cptr++;
 #ifdef INTERP_COL
+			a += aslope;
 			r += rslope;
 			g += gslope;
 			b += bslope;

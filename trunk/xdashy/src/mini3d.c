@@ -34,7 +34,7 @@ struct state {
 
 	unsigned int prim;
 	struct frame_buffer fb;
-	float clear_r, clear_g, clear_b;
+	float clear_r, clear_g, clear_b, clear_a;
 	float clear_depth;
 
 	vec3 lpos[4];
@@ -112,10 +112,11 @@ uint32_t *m3d_get_pixel_data(void) {
 }
 
 /* clear */
-void m3d_clear_color(float r, float g, float b) {
+void m3d_clear_color(float r, float g, float b, float a) {
 	state.clear_r = r;
 	state.clear_g = g;
 	state.clear_b = b;
+	state.clear_a = a;
 }
 
 void m3d_clear_depth(float d) {
@@ -127,7 +128,7 @@ void m3d_clear(unsigned int what) {
 	int sz = state.fb.x * state.fb.y;
 	uint32_t *cptr = state.fb.color_buffer;
 	uint32_t *zptr = state.fb.depth_buffer;
-	uint32_t col = PACK_COLOR24(state.clear_r * 255.0, state.clear_g * 255.0, state.clear_b * 255.0);
+	uint32_t col = PACK_COLOR32(state.clear_r * 255.0, state.clear_r * 255.0, state.clear_g * 255.0, state.clear_b * 255.0);
 	uint32_t zval = (uint32_t)fixedf(state.clear_depth);
 	
 	for(i=0; i<sz; i++) {

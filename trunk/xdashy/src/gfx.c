@@ -28,9 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <SDL_ttf.h>
 #include "mini3d.h"
 #include "mini3d_rasterizer.h"
-
-#define REND_XSZ	240
-#define REND_YSZ	180
+#include "xdashy.h"
 
 SDL_Surface *pscreen=0;
 SDL_Surface *pbackground=0;
@@ -39,9 +37,10 @@ TTF_Font *font;
 
 SDL_Joystick *joystick=0;
 
-extern int settings_font_height;
+unsigned int effect_width, effect_height;
 
-int init_gfx(const char *bg_file, const char *font_file, int font_height)
+int init_gfx(const char *bg_file, const char *font_file, int font_height,
+				int fx_w, int fx_h)
 {
     /* Initialize the SDL library */
     if( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0 ) 
@@ -80,13 +79,16 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height)
 		return 0;
 	}
 	
-	settings_font_height = TTF_FontHeight(font);
+	xdashy_set_font_height(TTF_FontHeight(font));
 
 	/* initialize mini3d */
 	m3d_init();
-	m3d_viewport(0, 0, REND_XSZ, REND_YSZ);
+	m3d_viewport(0, 0, fx_w, fx_h);
 
-	m3d_clear_color(0.0, 0.0, 0.0);
+	effect_width = fx_w;
+	effect_height = fx_h;
+	
+	m3d_clear_color(0.0, 0.0, 0.0, 0.0);
 	m3d_clear_depth(1.0);
 
 	m3d_enable(M3D_DEPTH_TEST);
@@ -170,7 +172,7 @@ void draw_cube(void) {
 
 	/* face +Z */
 	m3d_normal(0, 0, 1);
-	m3d_color3(1, 0, 0);
+	m3d_color4(1, 0, 0, 1);
 	m3d_vertex(1, -1, 1);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(-1, 1, 1);
@@ -178,7 +180,7 @@ void draw_cube(void) {
 
 	/* face -X */
 	m3d_normal(-1, 0, 0);
-	m3d_color3(0, 1, 0);
+	m3d_color4(0, 1, 0, 1);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(-1, 1, -1);
@@ -186,7 +188,7 @@ void draw_cube(void) {
 
 	/* face -Z */
 	m3d_normal(0, 0, -1);
-	m3d_color3(0, 0, 1);
+	m3d_color4(0, 0, 1, 1);
 	m3d_vertex(-1, 1, -1);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(1, -1, -1);
@@ -194,7 +196,7 @@ void draw_cube(void) {
 
 	/* face +X */
 	m3d_normal(1, 0, 0);
-	m3d_color3(1, 1, 0);
+	m3d_color4(1, 1, 0, 1);
 	m3d_vertex(1, 1, -1);
 	m3d_vertex(1, -1, -1);
 	m3d_vertex(1, -1, 1);
@@ -202,7 +204,7 @@ void draw_cube(void) {
 
 	/* face +Y */
 	m3d_normal(0, 1, 0);
-	m3d_color3(0, 1, 1);
+	m3d_color4(0, 1, 1, 1);
 	m3d_vertex(1, 1, 1);
 	m3d_vertex(-1, 1, 1);
 	m3d_vertex(-1, 1, -1);
@@ -210,7 +212,7 @@ void draw_cube(void) {
 
 	/* face -Y */
 	m3d_normal(0, -1, 0);
-	m3d_color3(1, 0, 1);
+	m3d_color4(1, 0, 1, 1);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(1, -1, 1);
@@ -219,21 +221,40 @@ void draw_cube(void) {
 	m3d_end();
 }
 
-void render_3d(int x, int y) {
+void blit_effect_normal(int x, int y)
+{
 	int i, xspan, yspan;
 	uint32_t *rbuf, *fb;
-	float t = SDL_GetTicks() / 10.0f;
 	
-	m3d_clear(M3D_COLOR_BUFFER_BIT | M3D_DEPTH_BUFFER_BIT);
+	rbuf = m3d_get_pixel_data();
 
-	m3d_matrix_mode(M3D_MODELVIEW);
-	m3d_load_identity();
-	m3d_translate(0, 0, 10);
-	m3d_rotate(t, 1, 0, 0);
-	m3d_rotate(t, 0, 1, 0);
+	/* copy to SDL surface */
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_LockSurface(pscreen);
+	}
 	// alternatively: m3d_rotate_euler(t, t, 0);
 
-	draw_cube();
+	xspan = pscreen->w - x;
+	xspan = xspan > effect_width ? effect_width : xspan;
+
+	yspan = pscreen->h - y;
+	yspan = yspan > effect_height ? effect_height : yspan;
+
+	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
+	for(i=0; i<yspan; i++) {		
+		memcpy(fb, rbuf, xspan * sizeof(uint32_t));
+		fb += pscreen->w;
+		rbuf += effect_width;
+	}
+
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_UnlockSurface(pscreen);
+	}
+}
+void blit_effect_alpha_test(int x, int y, unsigned char ref)
+{
+	int i, j, xspan, yspan;
+	uint32_t *rbuf, *fb;
 	
 	rbuf = m3d_get_pixel_data();
 
@@ -243,19 +264,62 @@ void render_3d(int x, int y) {
 	}
 
 	xspan = pscreen->w - x;
-	xspan = xspan > REND_XSZ ? REND_XSZ : xspan;
+	xspan = xspan > effect_width ? effect_width : xspan;
 
 	yspan = pscreen->h - y;
-	yspan = yspan > REND_YSZ ? REND_YSZ : yspan;
+	yspan = yspan > effect_height ? effect_height : yspan;
 
 	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
-	for(i=0; i<REND_YSZ; i++) {
-		memcpy(fb, rbuf, xspan * sizeof(uint32_t));
-		fb += pscreen->w;
-		rbuf += REND_XSZ;
+	for(j=0; j<yspan; j++) {
+		for (i=0; i<xspan; i++) {
+			if ((*rbuf >> 24) != ref) {
+				*fb = *rbuf;
+			}
+			fb ++;
+			rbuf ++;	
+		}
+		fb += pscreen->w - xspan;
+		rbuf += effect_width - xspan;
 	}
 
 	if(SDL_MUSTLOCK(pscreen)) {
 		SDL_UnlockSurface(pscreen);
 	}
+}
+
+void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int alpha_blend) {
+	float t = SDL_GetTicks() / 10.0f;
+	
+	m3d_clear(M3D_COLOR_BUFFER_BIT | M3D_DEPTH_BUFFER_BIT);
+
+	m3d_matrix_mode(M3D_MODELVIEW);
+	m3d_load_identity();
+	m3d_translate(0, 0, 10);
+	m3d_rotate(t, 1, 0, 0);
+	m3d_rotate(t, 0, 1, 0);
+
+	draw_cube();
+
+	if (alpha_test)
+	{
+		blit_effect_alpha_test(x, y, alpha_ref);
+		if (alpha_blend)
+		{
+			// TODO: implement this
+			// blit_efect_alpha_test_blend(x, y, alpha_ref);
+		}
+	}
+	else
+	{
+		if (alpha_blend)
+		{
+			// TODO: implement this
+			// blit_effect_alpha_blend(x, y);
+		}
+		else
+		{
+			blit_effect_normal(x, y);
+		}
+	}
+	
 }

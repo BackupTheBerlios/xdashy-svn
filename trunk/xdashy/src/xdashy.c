@@ -31,39 +31,80 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <hal/xbox.h>
 #endif /* ENABLE_XBOX */
 
-MenuItem *root_menu;
-MenuItem *settings;
-
 /* Settings */
-char settings_background[512];
-char settings_font_file[512];
-int settings_font_height;
-int settings_client_area_x;
-int settings_client_area_y;
-int settings_client_area_width;
-int settings_client_area_height;
+typedef struct rect_t
+{
+	int x,y;
+	unsigned int w,h;
+} rect;
 
-int settings_title_area_x;
-int settings_title_area_y;
-int settings_title_area_width;
-int settings_title_area_height;
+struct settings
+{
+	char bg_file[512];
+	char font_file[512];
+	int font_height;
+	rect client_area;
+	rect title_area;
+	rect effect_area;
+	
+	float text_r;
+	float text_g;
+	float text_b;
 
-float settings_text_r;
-float settings_text_g;
-float settings_text_b;
+	float selected_text_r;
+	float selected_text_g;
+	float selected_text_b;
 
-float settings_selected_text_r;
-float settings_selected_text_g;
-float settings_selected_text_b;
+	float bar_r;
+	float bar_g;
+	float bar_b;
 
-float settings_bar_r;
-float settings_bar_g;
-float settings_bar_b;
+	int fx_alpha_test;
+	unsigned char fx_alpha_ref;
+	int fx_alpha_blend;
+	
+} settings;
 
-/* rendering */
-unsigned int selected_item=0;
-int menu_scroll=0;
-unsigned int items_in_client_area=0;
+
+/* State */
+struct xstate
+{
+	unsigned int selected_item;
+	int menu_scroll;
+	unsigned int items_in_client_area;
+	MenuItem *root_menu;
+} xstate;
+
+// This will only affect the font height in xdashy state. Not the actual
+// font height of the generated font.
+void xdashy_set_font_height(unsigned int h)
+{
+	settings.font_height = h;
+}
+
+static void get_rect(MenuItem *item, rect *r)
+{
+	MenuItem *item2;
+	
+	item2 = MenuItem_get_item(item, "x");
+	if (item2) r->x = atoi(item2->launch);
+	
+	item2 = MenuItem_get_item(item, "y");
+	if (item2) r->y = atoi(item2->launch);
+	
+	item2 = MenuItem_get_item(item, "width");
+	if (item2) r->w = atoi(item2->launch);
+	
+	item2 = MenuItem_get_item(item, "height");
+	if (item2) r->h = atoi(item2->launch);	
+}
+
+static int get_bool(const char *str)
+{
+	if (!strcmp(str, "true") || !strcmp(str, "yes"))
+		return 1;
+	return 0;
+}
 
 static void get_color(MenuItem *item, float *r, float *g, float *b)
 {
@@ -90,10 +131,10 @@ int xdashy_load_settings()
 {
 	MenuItem *item=0, *item2=0, *config=0;
 	
-	if (root_menu)
-		del_MenuItem(root_menu);
-	if (settings)
-		del_MenuItem(settings);
+	MenuItem *settings_file;
+	
+	if (xstate.root_menu)
+		del_MenuItem(xstate.root_menu);
 	
 	config = MenuItem_load("data/xdashy.config");
 	if (! config)
@@ -112,15 +153,15 @@ int xdashy_load_settings()
 	}
 	
 	/* load settings */
-	root_menu = MenuItem_load(item->launch);
-	if (! root_menu)
+	xstate.root_menu = MenuItem_load(item->launch);
+	if (! xstate.root_menu)
 	{
 		fprintf(stderr, "Failed to open \"%s\"\n", item->launch);
 		return 0;
 	}
 
-	settings = MenuItem_load(item2->launch);
-	if (! settings)
+	settings_file = MenuItem_load(item2->launch);
+	if (! settings_file)
 	{
 		fprintf(stderr, "Failed to open \"%s\"\n", item2->launch);
 		return 0;
@@ -128,77 +169,76 @@ int xdashy_load_settings()
 	
 	del_MenuItem(config);
 
-	item = MenuItem_get_item(settings, "background");
-	if (!item) strcpy(settings_background, "back.png");
-	else strcpy(settings_background, item->launch);
+	item = MenuItem_get_item(settings_file, "background");
+	if (!item) strcpy(settings.bg_file, "back.png");
+	else strcpy(settings.bg_file, item->launch);
 
-	item = MenuItem_get_item(settings, "font");
-	strcpy(settings_font_file, "FreeSansBold.ttf");
-	settings_font_height = 16;
+	item = MenuItem_get_item(settings_file, "font");
+	strcpy(settings.font_file, "FreeSansBold.ttf");
+	settings.font_height = 16;
 	if (item)
 	{
 		item2 = MenuItem_get_item(item, "file");
-		if (item2) strcpy(settings_font_file, item2->launch);
+		if (item2) strcpy(settings.font_file, item2->launch);
 
 		item2 = MenuItem_get_item(item, "height");
-		if (item2) settings_font_height = atoi(item2->launch);
+		if (item2) settings.font_height = atoi(item2->launch);
 	}
 
-	item = MenuItem_get_item(settings, "client area");
-	settings_client_area_x = 0;
-	settings_client_area_y = 0;
-	settings_client_area_width = 640;
-	settings_client_area_height = 480;
-	if (item)
-	{
-		item2 = MenuItem_get_item(item, "x");
-		if (item2) settings_client_area_x = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "y");
-		if (item2) settings_client_area_y = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "width");
-		if (item2) settings_client_area_width = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "height");
-		if (item2) settings_client_area_height = atoi(item2->launch);
-	}
-
-	items_in_client_area = settings_client_area_height / settings_font_height;
+	item = MenuItem_get_item(settings_file, "client area");
+	settings.client_area.x = 0;
+	settings.client_area.y = 0;
+	settings.client_area.w = 640;
+	settings.client_area.h = 480;
+	if (item) get_rect(item, &settings.client_area);
 	
-	item = MenuItem_get_item(settings, "title area");
-	settings_title_area_x = 0;
-	settings_title_area_y = 0;
-	settings_title_area_width = 640;
-	settings_title_area_height = 480;
+	xstate.items_in_client_area = settings.client_area.h / settings.font_height;
+	
+	item = MenuItem_get_item(settings_file, "title area");
+	settings.title_area.x = 0;
+	settings.title_area.y = 0;
+	settings.title_area.w = 640;
+	settings.title_area.h = 480;
+	if (item) get_rect(item, &settings.title_area);
+
+	item = MenuItem_get_item(settings_file, "effect area");
+	settings.effect_area.x = 0;
+	settings.effect_area.y = 0;
+	settings.effect_area.w = 640;
+	settings.effect_area.h = 480;
+	if (item) get_rect(item, &settings.effect_area);
+	
+	/* effect blit options */
+	item = MenuItem_get_item(settings_file, "effect blit");
+	settings.fx_alpha_test = 0;
+	settings.fx_alpha_ref = 0;
+	settings.fx_alpha_blend = 0;
 	if (item)
 	{
-		item2 = MenuItem_get_item(item, "x");
-		if (item2) settings_title_area_x = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "y");
-		if (item2) settings_title_area_y = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "width");
-		if (item2) settings_title_area_width = atoi(item2->launch);
-
-		item2 = MenuItem_get_item(item, "height");
-		if (item2) settings_title_area_height = atoi(item2->launch);
+		item2 = MenuItem_get_item(item, "alpha test");
+		if (item2) settings.fx_alpha_test = get_bool(item2->launch);
+		item2 = MenuItem_get_item(item, "alpha ref");
+		if (item2) settings.fx_alpha_ref = atoi(item2->launch);
+		item2 = MenuItem_get_item(item, "alpha blend");
+		if (item2) settings.fx_alpha_blend = get_bool(item2->launch);
 	}
-
+	
 	/* load colors */
-	get_color(MenuItem_get_item(settings, "text color"),
-					&settings_text_r, 
-					&settings_text_g, 
-					&settings_text_b);
-	get_color(MenuItem_get_item(settings, "selected text color"),
-					&settings_selected_text_r, 
-					&settings_selected_text_g, 
-					&settings_selected_text_b);
-	get_color(MenuItem_get_item(settings, "bar color"),
-					&settings_bar_r, 
-					&settings_bar_g, 
-					&settings_bar_b);
+	get_color(MenuItem_get_item(settings_file, "text color"),
+					&settings.text_r, 
+					&settings.text_g, 
+					&settings.text_b);
+	get_color(MenuItem_get_item(settings_file, "selected text color"),
+					&settings.selected_text_r, 
+					&settings.selected_text_g, 
+					&settings.selected_text_b);
+	get_color(MenuItem_get_item(settings_file, "bar color"),
+					&settings.bar_r, 
+					&settings.bar_g, 
+					&settings.bar_b);
+	
+	del_MenuItem(settings_file);
+	
 	return 1;
 }
 
@@ -210,7 +250,8 @@ int xdashy_init()
 		return 0;
 	}
 	
-	return init_gfx(settings_background, settings_font_file, settings_font_height);
+	return init_gfx(settings.bg_file, settings.font_file, settings.font_height,
+					settings.effect_area.w, settings.effect_area.h);
 }
 
 static void xdashy_perform_action(char *action)
@@ -229,44 +270,43 @@ static void xdashy_perform_action(char *action)
 #ifdef ENABLE_XBOX
 	XLaunchXBE(action);
 #endif /* ENABLE_XBOX */
-
 }
 
 void xdashy_move_up()
 {
-	if (selected_item > 0) 
+	if (xstate.selected_item > 0) 
 	{
-		selected_item --;
-		int pos = selected_item * settings_font_height + menu_scroll;
-		if (pos < 0) menu_scroll -= pos;
+		xstate.selected_item --;
+		int pos = xstate.selected_item * settings.font_height + xstate.menu_scroll;
+		if (pos < 0) xstate.menu_scroll -= pos;
 	}
 }
 
 void xdashy_move_down()	
 {
-	if (selected_item < root_menu->num_children-1)
+	if (xstate.selected_item < xstate.root_menu->num_children-1)
 	{
-		selected_item ++;
-		int pos = selected_item *settings_font_height + menu_scroll;
-		pos += settings_font_height - 1;
-		if (pos > settings_client_area_height)
+		xstate.selected_item ++;
+		int pos = xstate.selected_item * settings.font_height + xstate.menu_scroll;
+		pos += settings.font_height - 1;
+		if (pos > settings.client_area.h)
 		{
-			menu_scroll -= pos - settings_client_area_height;
+			xstate.menu_scroll -= pos - settings.client_area.h;
 		}
 	}
 }
 
 void xdashy_execute()
 {
-	switch (root_menu->children[selected_item]->action)
+	switch (xstate.root_menu->children[xstate.selected_item]->action)
 	{
 		case MA_NEW_MENU:
-			root_menu = root_menu->children[selected_item];
-			selected_item = 0;
-			menu_scroll = 0;
+			xstate.root_menu = xstate.root_menu->children[xstate.selected_item];
+			xstate.selected_item = 0;
+			xstate.menu_scroll = 0;
 			break;
 		case MA_LAUNCH:
-			xdashy_perform_action(root_menu->children[selected_item]->launch);
+			xdashy_perform_action(xstate.root_menu->children[xstate.selected_item]->launch);
 			break;
 		case MA_NONE:
 			break;
@@ -275,11 +315,11 @@ void xdashy_execute()
 
 void xdashy_move_back()
 {
-	if (root_menu->mother)
+	if (xstate.root_menu->mother)
 	{
-		root_menu = root_menu->mother;
-		selected_item = 0;
-		menu_scroll = 0;
+		xstate.root_menu = xstate.root_menu->mother;
+		xstate.selected_item = 0;
+		xstate.menu_scroll = 0;
 	}
 }
 
@@ -289,67 +329,67 @@ void xdashy_render()
 	unsigned int i;
 
 	render_background();
+
+	/* render thingy */
+	render_effect(settings.effect_area.x, settings.effect_area.y,
+		settings.fx_alpha_test, settings.fx_alpha_ref,
+		settings.fx_alpha_blend);
 	
 	/* set clip rect to title area */
-	set_clip_rect(settings_title_area_x, settings_title_area_y,
-			settings_title_area_width, settings_title_area_height);
+	set_clip_rect(settings.title_area.x, settings.title_area.y,
+			settings.title_area.w, settings.title_area.h);
 	
-	render_text(settings_title_area_x, settings_title_area_y,
-				root_menu->title,
-				settings_text_r,
-				settings_text_g,
-				settings_text_b);
+	render_text(settings.title_area.x, settings.title_area.y,
+				xstate.root_menu->title,
+				settings.text_r,
+				settings.text_g,
+				settings.text_b);
 	
 	/* set clip rect to client area */
-	set_clip_rect(settings_client_area_x, settings_client_area_y,
-			settings_client_area_width, settings_client_area_height);
+	set_clip_rect(settings.client_area.x, settings.client_area.y,
+			settings.client_area.w, settings.client_area.h);
 
 	render_quad(0, 
-				settings_client_area_y + 
-				selected_item * settings_font_height + 
-				menu_scroll,
-				640, settings_font_height,
-				settings_bar_r,
-				settings_bar_g,
-				settings_bar_b);
+				settings.client_area.y + 
+				xstate.selected_item * settings.font_height + 
+				xstate.menu_scroll,
+				640, settings.font_height,
+				settings.bar_r,
+				settings.bar_g,
+				settings.bar_b);
 	
-	for (i=0; i<root_menu->num_children; i++)
+	for (i=0; i<xstate.root_menu->num_children; i++)
 	{
-		if (i == selected_item)
+		if (i == xstate.selected_item)
 		{
-			render_text(settings_client_area_x, 
-					settings_client_area_y + 
-					settings_font_height * i + menu_scroll,
-					root_menu->children[i]->title,
-					settings_selected_text_r, 
-					settings_selected_text_g, 
-					settings_selected_text_b);
+			render_text(settings.client_area.x, 
+					settings.client_area.y + 
+					settings.font_height * i + xstate.menu_scroll,
+					xstate.root_menu->children[i]->title,
+					settings.selected_text_r, 
+					settings.selected_text_g, 
+					settings.selected_text_b);
 		}
 		else
 		{
-			render_text(settings_client_area_x, 
-					settings_client_area_y + 
-					settings_font_height * i + menu_scroll,
-					root_menu->children[i]->title,
-					settings_text_r, 
-					settings_text_g, 
-					settings_text_b);
+			render_text(settings.client_area.x, 
+					settings.client_area.y + 
+					settings.font_height * i + xstate.menu_scroll,
+					xstate.root_menu->children[i]->title,
+					settings.text_r, 
+					settings.text_g, 
+					settings.text_b);
 		}
 	}
 	
 	/* remove clip rect */
 	set_clip_rect(0, 0, 640, 480);
-
-	/* render thingy */
-	render_3d(320, 120);
 }
 
 void xdashy_close()
 {
-	if (root_menu)
-		del_MenuItem(root_menu);
-	if (settings)
-		del_MenuItem(settings);
+	if (xstate.root_menu)
+		del_MenuItem(xstate.root_menu);
 	
 	close_gfx();
 }
