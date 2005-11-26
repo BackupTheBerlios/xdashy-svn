@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "mini3d.h"
 #include "mini3d_rasterizer.h"
 #include "xdashy.h"
+#include "color_bits.h"
 
 SDL_Surface *pscreen=0;
 SDL_Surface *pbackground=0;
@@ -169,10 +170,11 @@ void set_clip_rect(int x, int y, int w, int h)
 
 void draw_cube(void) {	
 	m3d_begin(M3D_QUADS);
+	float a = 0.65f;
 
 	/* face +Z */
 	m3d_normal(0, 0, 1);
-	m3d_color4(1, 0, 0, 1);
+	m3d_color4(1, 0, 0, a);
 	m3d_vertex(1, -1, 1);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(-1, 1, 1);
@@ -180,7 +182,7 @@ void draw_cube(void) {
 
 	/* face -X */
 	m3d_normal(-1, 0, 0);
-	m3d_color4(0, 1, 0, 1);
+	m3d_color4(0, 1, 0, a);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(-1, 1, -1);
@@ -188,7 +190,7 @@ void draw_cube(void) {
 
 	/* face -Z */
 	m3d_normal(0, 0, -1);
-	m3d_color4(0, 0, 1, 1);
+	m3d_color4(0, 0, 1, a);
 	m3d_vertex(-1, 1, -1);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(1, -1, -1);
@@ -196,7 +198,7 @@ void draw_cube(void) {
 
 	/* face +X */
 	m3d_normal(1, 0, 0);
-	m3d_color4(1, 1, 0, 1);
+	m3d_color4(1, 1, 0, a);
 	m3d_vertex(1, 1, -1);
 	m3d_vertex(1, -1, -1);
 	m3d_vertex(1, -1, 1);
@@ -204,7 +206,7 @@ void draw_cube(void) {
 
 	/* face +Y */
 	m3d_normal(0, 1, 0);
-	m3d_color4(0, 1, 1, 1);
+	m3d_color4(0, 1, 1, a);
 	m3d_vertex(1, 1, 1);
 	m3d_vertex(-1, 1, 1);
 	m3d_vertex(-1, 1, -1);
@@ -212,7 +214,7 @@ void draw_cube(void) {
 
 	/* face -Y */
 	m3d_normal(0, -1, 0);
-	m3d_color4(1, 0, 1, 1);
+	m3d_color4(1, 0, 1, a);
 	m3d_vertex(-1, -1, -1);
 	m3d_vertex(-1, -1, 1);
 	m3d_vertex(1, -1, 1);
@@ -232,7 +234,6 @@ void blit_effect_normal(int x, int y)
 	if(SDL_MUSTLOCK(pscreen)) {
 		SDL_LockSurface(pscreen);
 	}
-	// alternatively: m3d_rotate_euler(t, t, 0);
 
 	xspan = pscreen->w - x;
 	xspan = xspan > effect_width ? effect_width : xspan;
@@ -272,7 +273,7 @@ void blit_effect_alpha_test(int x, int y, unsigned char ref)
 	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
 	for(j=0; j<yspan; j++) {
 		for (i=0; i<xspan; i++) {
-			if ((*rbuf >> 24) != ref) {
+			if ((*rbuf >> ALPHA_SHIFT32) != ref) {
 				*fb = *rbuf;
 			}
 			fb ++;
@@ -286,6 +287,57 @@ void blit_effect_alpha_test(int x, int y, unsigned char ref)
 		SDL_UnlockSurface(pscreen);
 	}
 }
+
+void blit_effect_alpha_blend(int x, int y, unsigned char ref)
+{
+	int i, j, xspan, yspan;
+	uint32_t *rbuf, *fb;
+	
+	rbuf = m3d_get_pixel_data();
+
+	/* copy to SDL surface */
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_LockSurface(pscreen);
+	}
+
+	xspan = pscreen->w - x;
+	xspan = xspan > effect_width ? effect_width : xspan;
+
+	yspan = pscreen->h - y;
+	yspan = yspan > effect_height ? effect_height : yspan;
+
+	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
+	for(j=0; j<yspan; j++) {
+		for (i=0; i<xspan; i++) {
+			int alpha = (*rbuf & ALPHA_MASK32) >> ALPHA_SHIFT32;
+			if(alpha > ref) {
+				int sr = (*rbuf & RED_MASK32) >> RED_SHIFT32;
+				int sg = (*rbuf & GREEN_MASK32) >> GREEN_SHIFT32;
+				int sb = (*rbuf & BLUE_MASK32) >> BLUE_SHIFT32;
+				int dr = (*fb & RED_MASK32) >> RED_SHIFT32;
+				int dg = (*fb & GREEN_MASK32) >> GREEN_SHIFT32;
+				int db = (*fb & BLUE_MASK32) >> BLUE_SHIFT32;
+
+				uint32_t col = 0;
+				col |= (((sr * alpha) / 255 + (dr * (255 - alpha)) / 255) << RED_SHIFT32) & RED_MASK32;
+				col |= (((sg * alpha) / 255 + (dg * (255 - alpha)) / 255) << GREEN_SHIFT32) & GREEN_MASK32;
+				col |= (((sb * alpha) / 255 + (db * (255 - alpha)) / 255) << BLUE_SHIFT32) & BLUE_MASK32;
+				col |= (alpha << ALPHA_SHIFT32) & ALPHA_MASK32;
+				
+				*fb = col;
+			}
+			fb++;
+			rbuf++;
+		}
+		fb += pscreen->w - xspan;
+		rbuf += effect_width - xspan;
+	}
+
+	if(SDL_MUSTLOCK(pscreen)) {
+		SDL_UnlockSurface(pscreen);
+	}
+}
+
 
 void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int alpha_blend) {
 	float t = SDL_GetTicks() / 10.0f;
@@ -305,16 +357,14 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 		blit_effect_alpha_test(x, y, alpha_ref);
 		if (alpha_blend)
 		{
-			// TODO: implement this
-			// blit_efect_alpha_test_blend(x, y, alpha_ref);
+			blit_effect_alpha_blend(x, y, alpha_ref);
 		}
 	}
 	else
 	{
 		if (alpha_blend)
 		{
-			// TODO: implement this
-			// blit_effect_alpha_blend(x, y);
+			blit_effect_alpha_blend(x, y, 0);
 		}
 		else
 		{

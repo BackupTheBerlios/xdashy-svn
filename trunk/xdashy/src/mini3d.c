@@ -128,7 +128,7 @@ void m3d_clear(unsigned int what) {
 	int sz = state.fb.x * state.fb.y;
 	uint32_t *cptr = state.fb.color_buffer;
 	uint32_t *zptr = state.fb.depth_buffer;
-	uint32_t col = PACK_COLOR32(state.clear_r * 255.0, state.clear_r * 255.0, state.clear_g * 255.0, state.clear_b * 255.0);
+	uint32_t col = PACK_COLOR32(state.clear_a * 255.0, state.clear_r * 255.0, state.clear_g * 255.0, state.clear_b * 255.0);
 	uint32_t zval = (uint32_t)fixedf(state.clear_depth);
 	
 	for(i=0; i<sz; i++) {

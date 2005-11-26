@@ -222,7 +222,7 @@ int xdashy_load_settings()
 		item2 = MenuItem_get_item(item, "alpha blend");
 		if (item2) settings.fx_alpha_blend = get_bool(item2->launch);
 	}
-	
+
 	/* load colors */
 	get_color(MenuItem_get_item(settings_file, "text color"),
 					&settings.text_r, 
