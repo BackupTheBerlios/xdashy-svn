@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stddef.h>
 #include "mini3d_rasterizer.h"
+#include "mini3d.h"
 #include "color_bits.h"
 
 #define GET_R(p)	(((p) & RED_MASK32) >> RED_SHIFT32)
@@ -29,8 +30,7 @@ static inline void scan_fixed(fixed x1, fixed y1, fixed x2, fixed y2, int elem_o
 static inline void fill_scanlines(int starty, int endy);
 
 // ---------- rasterizer state variables and edge tables ---------
-static int ztest = 0;
-static int zwrite = 0;
+static unsigned int *state;
 
 static struct frame_buffer *fb;
 static int xres, yres;
@@ -47,14 +47,12 @@ int m3d_rasterizer_setup(struct frame_buffer *fbuf) {
 	xres = fb->x;
 	yres = fb->y;
 
-	printf("setting up for: %dx%d\n", xres, yres);
-
 	free(left_edge);
 	free(right_edge);
 	free(scanline_offset);
 
-	left_edge = calloc(yres, sizeof(struct edge));
-	right_edge = calloc(yres, sizeof(struct edge));
+	left_edge = malloc(yres * sizeof(struct edge));
+	right_edge = malloc(yres * sizeof(struct edge));
 	scanline_offset = malloc(yres * sizeof(int));
 
 	if(!left_edge || !right_edge || !scanline_offset) {
@@ -66,6 +64,10 @@ int m3d_rasterizer_setup(struct frame_buffer *fbuf) {
 	}
 
 	return 0;
+}
+
+void m3d_rstate_sptr(unsigned int *sptr) {
+	state = sptr;
 }
 
 void m3d_draw_line(struct vertex *points) {
@@ -286,9 +288,9 @@ static inline void fill_scanlines(int starty, int endy) {
 		
 		for(int x=startx; x<endx; x++) {
 #ifdef INTERP_Z
-			uint32_t zval = (uint32_t)fixed_int(z);
+			uint32_t zval = (uint32_t)z;
 
-			if(!ztest || zval < *zptr) {
+			if(!(*state & M3D_DEPTH_TEST) || zval < *zptr) {
 #endif
 				
 				static fixed fixed_255 = fixedi(255);
@@ -314,7 +316,7 @@ static inline void fill_scanlines(int starty, int endy) {
 			
 				*cptr = PACK_COLOR24(ir, ig, ib);
 #ifdef INTERP_Z
-				if(zwrite) *zptr = zval;
+				if(*state & M3D_DEPTH_WRITE) *zptr = zval;
 			}
 			zptr++;
 			z += zslope;

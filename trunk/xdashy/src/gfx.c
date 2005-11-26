@@ -89,7 +89,7 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height)
 	m3d_clear_color(0.0, 0.0, 0.0);
 	m3d_clear_depth(1.0);
 
-	//m3d_enable(M3D_DEPTH_TEST);
+	m3d_enable(M3D_DEPTH_TEST);
 	//m3d_enable(M3D_LIGHTING);
 	//m3d_enable(M3D_LIGHT0);
 
@@ -231,6 +231,7 @@ void render_3d(int x, int y) {
 	m3d_translate(0, 0, 10);
 	m3d_rotate(t, 1, 0, 0);
 	m3d_rotate(t, 0, 1, 0);
+	// alternatively: m3d_rotate_euler(t, t, 0);
 
 	draw_cube();
 	

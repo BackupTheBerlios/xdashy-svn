@@ -12,6 +12,7 @@ enum {
 	M3D_LIGHT3,
 	M3D_TEXTURE,
 	M3D_DEPTH_TEST,
+	M3D_DEPTH_WRITE, /* set through m3d_depth_mask() rather than m3d_enable/disable */
 
 	M3D_MODELVIEW = 100,
 	M3D_PROJECTION,
@@ -45,6 +46,9 @@ void m3d_clear(unsigned int what);
 void m3d_enable(unsigned int what);
 void m3d_disable(unsigned int what);
 
+/* zbuffer state */
+void m3d_depth_mask(int boolval);
+
 /* lights and materials */
 void m3d_light(unsigned int light, unsigned int pname, float *params);
 void m3d_material(unsigned int pname, float param);
@@ -56,8 +60,12 @@ void m3d_load_identity(void);
 void m3d_load_matrix(float *mat);
 void m3d_mult_matrix(float *mat);
 
+void m3d_push_matrix(void);
+void m3d_pop_matrix(void);
+
 void m3d_translate(float x, float y, float z);
 void m3d_rotate(float angle, float x, float y, float z);
+void m3d_rotate_euler(float x, float y, float z);
 void m3d_scale(float x, float y, float z);
 
 void m3d_perspective(float fovy, float aspect, float znear, float zfar);

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "mini3d.h"
 #include "mini3d_rasterizer.h"
@@ -26,6 +27,7 @@ struct state {
 	unsigned int s;
 	float matrices[2][16];
 	float *mat;
+	float msave[2][16];
 	
 	float mvp_mat[16];
 	int mvp_valid;
@@ -49,6 +51,7 @@ struct state {
 
 void m3d_init(void) {
 	state.s = 0;
+	state.s |= M3D_DEPTH_WRITE;
 	m3d_matrix_mode(M3D_PROJECTION);
 	m3d_load_identity();
 	m3d_perspective(45.0, 1.333333, 1.0, 1000.0);
@@ -74,6 +77,8 @@ void m3d_init(void) {
 	state.shininess = 1.0f;
 
 	state.fb.color_buffer = state.fb.depth_buffer = 0;
+
+	m3d_rstate_sptr(&state.s);
 }
 
 void m3d_destroy(void) {
@@ -123,7 +128,7 @@ void m3d_clear(unsigned int what) {
 	uint32_t *cptr = state.fb.color_buffer;
 	uint32_t *zptr = state.fb.depth_buffer;
 	uint32_t col = PACK_COLOR24(state.clear_r * 255.0, state.clear_g * 255.0, state.clear_b * 255.0);
-	uint32_t zval = (uint32_t)(state.clear_depth * UINT32_MAX);
+	uint32_t zval = (uint32_t)fixedf(state.clear_depth);
 	
 	for(i=0; i<sz; i++) {
 		if(what & M3D_COLOR_BUFFER_BIT) {
@@ -144,6 +149,15 @@ void m3d_enable(unsigned int what) {
 
 void m3d_disable(unsigned int what) {
 	state.s &= ~(1 << what);
+}
+
+/* zbuffer state */
+void m3d_depth_mask(int boolval) {
+	if(boolval) {
+		m3d_enable(M3D_DEPTH_WRITE);
+	} else {
+		m3d_disable(M3D_DEPTH_WRITE);
+	}
 }
 
 /* lights and materials */
@@ -210,21 +224,29 @@ void m3d_mult_matrix(float *m2) {
 	state.mvp_valid = 0;
 }
 
+void m3d_push_matrix(void) {
+	ptrdiff_t midx = state.mat - state.matrices[0];
+	memcpy(state.msave[midx], state.mat, 16 * sizeof(float));
+}
+
+void m3d_pop_matrix(void) {
+	ptrdiff_t midx = state.mat - state.matrices[0];
+	memcpy(state.mat, state.msave[midx], 16 * sizeof(float));
+}
 
 void m3d_translate(float x, float y, float z) {
-	float tmat[16] = {	1, 0, 0, x,
-						0, 1, 0, y,
-						0, 0, 1, z,
-						0, 0, 0, 1};
+	float tmat[16] = {1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1};
 	m3d_mult_matrix(tmat);
 }
 
 void m3d_rotate(float angle, float x, float y, float z) {
-	float rmat[16] = {	1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1};
-	float sina, cosa, invcosa, nxsq, nysq, nzsq;
+	float sina, cosa, invcosa, nxsq, nysq, nzsq, len;
+	float rmat[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+
+	len = (float)sqrt(x * x + y * y + z * z);
+	x /= len;
+	y /= len;
+	z /= len;
 
 	sina = (float)sin(DEG_TO_RAD(angle));
 	cosa = (float)cos(DEG_TO_RAD(angle));
@@ -244,6 +266,36 @@ void m3d_rotate(float angle, float x, float y, float z) {
 	rmat[M(2, 2)] = nzsq + (1.0f - nzsq) * cosa;
 
 	m3d_mult_matrix(rmat);
+}
+
+void m3d_rotate_euler(float x, float y, float z) {
+	float mat[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+
+	x = DEG_TO_RAD(x);
+	y = DEG_TO_RAD(y);
+	z = DEG_TO_RAD(z);
+
+	mat[M(1,1)] = (float)cos(x);
+	mat[M(1,2)] = -(float)sin(x);
+	mat[M(2,1)] = (float)sin(x);
+	mat[M(2,2)] = (float)cos(x);
+	m3d_mult_matrix(mat);
+
+	mat[M(1,1)] = 1.0f;
+	mat[M(1,2)] = mat[M(2,1)] = 0.0f;
+	mat[0] = (float)cos(y);
+	mat[M(0,2)] = (float)sin(y);
+	mat[M(2,0)] = -(float)sin(y);
+	mat[M(2,2)] = (float)cos(y);
+	m3d_mult_matrix(mat);
+
+	mat[M(2,0)] = mat[M(0,2)] = 0.0f;
+	mat[M(2,2)] = 1.0f;
+	mat[0] = (float)cos(z);
+	mat[1] = -(float)sin(z);
+	mat[M(1,0)] = (float)sin(z);
+	mat[M(1,1)] = (float)cos(z);
+	m3d_mult_matrix(mat);
 }
 
 void m3d_scale(float x, float y, float z) {

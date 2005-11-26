@@ -1,3 +1,6 @@
+/* This isn't supposed to be used directly by the user.
+ * It's an internal mini3d interface.
+ */
 #ifndef _MINI3D_RASTERIZER_H_
 #define _MINI3D_RASTERIZER_H_
 
@@ -18,6 +21,9 @@ struct vertex {
 };
 
 int m3d_rasterizer_setup(struct frame_buffer *fbuf);
+
+void m3d_rstate_sptr(unsigned int *sptr);
+/*void m3d_rstate_tptr(... some texture pointer pointer ...);*/
 
 void m3d_draw_line(struct vertex *points);
 void m3d_draw_polygon(struct vertex *points, int count);
