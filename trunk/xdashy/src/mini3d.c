@@ -337,8 +337,11 @@ void m3d_end(void) {
 
 
 static vec3 shade(vec3 vcs_pos, vec3 vcs_n) {
-	static const vec3 view = {0.0f, 0.0f, 1.0f};
 	vec3 col = state.ambient;
+	vec3 view = normalize(vcs_pos);
+	view.x = -view.x;
+	view.y = -view.y;
+	view.z = -view.z;
 
 	if(!(state.s & (1 << M3D_LIGHTING))) {
 		return col;
@@ -359,14 +362,14 @@ static vec3 shade(vec3 vcs_pos, vec3 vcs_n) {
 		ndotl = dot(vcs_n, ldir);
 		if(ndotl < 0.0f) ndotl = 0.0f;
 		dif = mul(state.diffuse, ndotl);
-		
+	
 		half.x = (view.x + ldir.x) * 0.5f;
 		half.y = (view.y + ldir.y) * 0.5f;
 		half.z = (view.z + ldir.z) * 0.5f;
 		
 		ndoth = dot(vcs_n, half);
 		if(ndoth < 0.0f) ndoth = 0.0f;
-		spec = mul(state.specular, ndoth);
+		spec = mul(state.specular, pow(ndoth, state.shininess));
 
 		col = add(col, dif);
 		col = add(col, spec);

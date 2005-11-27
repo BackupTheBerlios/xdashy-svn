@@ -350,6 +350,12 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 	
 	m3d_clear(M3D_COLOR_BUFFER_BIT | M3D_DEPTH_BUFFER_BIT);
 
+	float dif[] = {0.2, 0.4, 1.0, 1.0};
+	float spec[] = {1, 1, 1, 1};
+	m3d_materialv(M3D_DIFFUSE, dif);
+	m3d_materialv(M3D_SPECULAR, spec);
+	m3d_material(M3D_SHININESS, 60.0f);
+
 	m3d_matrix_mode(M3D_MODELVIEW);
 	m3d_load_identity();
 	m3d_translate(0, 0, 800);
