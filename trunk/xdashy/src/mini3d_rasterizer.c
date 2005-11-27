@@ -195,9 +195,10 @@ static inline void scan_int(fixed x1, fixed y1, fixed x2, fixed y2, int elem_off
 	fixed slope = dy ? fixed_div(dx, dy) : dx;
 
 	struct edge *ptr = edge + y;	// CAUTION: since this is only used for x which has offset 0, we skip it
-	for(int j=0; j<idy; j++, y++, ptr++) {
-
-		*(int*)ptr = fixed_round(x);
+	for(int j=0; j<idy && y<yres; j++, y++, ptr++) {
+		if(y >= 0) {
+			*(int*)ptr = fixed_round(x);
+		}
 		x += slope;
 	}
 }
@@ -223,9 +224,10 @@ static inline void scan_fixed(fixed x1, fixed y1, fixed x2, fixed y2, int elem_o
 	fixed slope = dy ? fixed_div(dx, dy) : dx;
 
 	struct edge *ptr = (struct edge*)((char*)(edge + y) + elem_offset);
-	for(int j=0; j<=idy; j++, y++, ptr++) {
-
-		*(fixed*)ptr = x;
+	for(int j=0; j<=idy && y<yres; j++, y++, ptr++) {
+		if(y >= 0) {
+			*(fixed*)ptr = x;
+		}
 		x += slope;
 	}
 }

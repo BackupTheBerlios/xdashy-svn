@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "xdashy.h"
 #include "color_bits.h"
 
+void draw_lord(void);
+
 SDL_Surface *pscreen=0;
 SDL_Surface *pbackground=0;
 
@@ -95,6 +97,10 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height,
 	m3d_enable(M3D_DEPTH_TEST);
 	m3d_enable(M3D_LIGHTING);
 	m3d_enable(M3D_LIGHT0);
+
+	m3d_matrix_mode(M3D_PROJECTION);
+	m3d_load_identity();
+	m3d_perspective(45.0, 1.33333, 100.0, 1000.0);
 
 	return 1;
 }
@@ -346,11 +352,11 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 
 	m3d_matrix_mode(M3D_MODELVIEW);
 	m3d_load_identity();
-	m3d_translate(0, 0, 10);
-	m3d_rotate(t, 1, 0, 0);
+	m3d_translate(0, 0, 800);
 	m3d_rotate(t, 0, 1, 0);
+	//m3d_rotate(-90, 1, 0, 0);
 
-	draw_cube();
+	draw_lord();
 
 	if (alpha_test)
 	{
@@ -372,4 +378,31 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 		}
 	}
 	
+}
+
+
+/* ------------------------------------------------- */
+
+#define MESH_NVERT	5535
+#define MESH_NNORM	29124
+#define MESH_NFACE	9708
+
+extern float vertices[MESH_NVERT][3];
+extern float normals[MESH_NNORM][3];
+extern int triangles[MESH_NFACE][3];
+
+void draw_lord(void) {
+	int i, j;
+	
+	m3d_begin(M3D_TRIANGLES);
+	for(i=0; i<MESH_NFACE; i++) {
+		for(j=2; j>=0; j--) {
+			int nidx = i * 3 + j;
+			int vidx = triangles[i][j];
+			
+			m3d_normal(normals[nidx][0], normals[nidx][1], normals[nidx][2]);
+			m3d_vertex(vertices[vidx][0], vertices[vidx][1], vertices[vidx][2]);
+		}
+	}
+	m3d_end();
 }

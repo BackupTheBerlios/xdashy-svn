@@ -9,4 +9,5 @@ OBJ += \
 	src/color.o\
 	src/mini3d.o\
 	src/mini3d_rasterizer.o\
-	src/fixed_point.o
+	src/fixed_point.o\
+	src/lord.o
