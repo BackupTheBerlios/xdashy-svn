@@ -279,7 +279,7 @@ void blit_effect_alpha_test(int x, int y, unsigned char ref)
 	fb = (uint32_t*)pscreen->pixels + y * pscreen->w + x;
 	for(j=0; j<yspan; j++) {
 		for (i=0; i<xspan; i++) {
-			if ((*rbuf >> ALPHA_SHIFT32) != ref) {
+			if ((*rbuf >> ALPHA_SHIFT32) > ref) {
 				*fb = *rbuf;
 			}
 			fb ++;

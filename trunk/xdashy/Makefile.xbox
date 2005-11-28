@@ -13,9 +13,13 @@ CC  = i586-mingw32msvc-gcc
 CXBE = $(PREFIX)/bin/cxbe
 
 SDLFLAGS  = -DENABLE_XBOX -DDISABLE_CDROM 
-CC_FLAGS  = -c -O3 -std=gnu99 -ffreestanding -nostdlib -fno-builtin -fno-exceptions -mno-cygwin -march=i386 $(SDLFLAGS) 
+CC_FLAGS  = -c -O3 -std=gnu99 -ffast-math \
+	-ffreestanding -nostdlib -fno-builtin \
+	-fno-exceptions -mno-cygwin -march=i386 $(SDLFLAGS) 
 
-INCLUDE   = -I$(PREFIX)/i386-pc-xbox/include -I$(PREFIX)/include -I$(PREFIX)/include/SDL
+INCLUDE   = -I$(PREFIX)/i386-pc-xbox/include \
+			-I$(PREFIX)/include \
+			-I$(PREFIX)/include/SDL
 
 CLINK = -nostdlib
 ALIGN = -Wl,--file-alignment,0x20 -Wl,--section-alignment,0x20 
@@ -24,7 +28,9 @@ ENTRYPOINT = -Wl,--entry,_WinMainCRTStartup
 STRIP = -Wl,--strip-all
 LD_FLAGS = $(CLINK) $(ALIGN) $(SHARED) $(ENTRYPOINT) $(STRIP)
 LD_DIRS = -L$(PREFIX)/i386-pc-xbox/lib -L$(PREFIX)/lib 
-LD_LIBS  = $(LD_DIRS)-lSDL_ttf -lSDL_image -ljpeg -lpng -lz -lm -lSDL -lfreetype2 -lopenxdk -lhal -lc -lhal -lusb -lc -lxboxkrnl
+LD_LIBS  = 	$(LD_DIRS)-lSDL_ttf -lSDL_image -ljpeg -lpng \
+			-lz -lm -lSDL -lfreetype2 -lopenxdk -lhal -lc\
+			-lhal -lusb -lc -lxboxkrnl -lgcc
 
 .PHONY: all
 xbox: $(TITLE).exe
