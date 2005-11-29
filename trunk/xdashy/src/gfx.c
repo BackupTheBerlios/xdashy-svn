@@ -100,7 +100,7 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height,
 
 	m3d_matrix_mode(M3D_PROJECTION);
 	m3d_load_identity();
-	m3d_perspective(45.0, 1.33333, 100.0, 1000.0);
+	m3d_perspective(45.0, (float) fx_w / (float) fx_h, 100.0, 10000.0);
 
 	return 1;
 }
@@ -129,7 +129,9 @@ void render_background()
 	SDL_BlitSurface(pbackground, 0, pscreen, 0);
 }
 
-void render_text(int x, int y, char *text, float r, float g, float b)
+void render_text(int x, int y, int w, char *text, 
+				float r, float g, float b,
+				enum TextAlign ta)
 {
 	SDL_Color clr;
 	SDL_Rect rect;
@@ -139,12 +141,23 @@ void render_text(int x, int y, char *text, float r, float g, float b)
 	clr.g = (int) (g * 255);
 	clr.b = (int) (b * 255);
 	
-	rect.x = x;
-	rect.y = y;
-
 	text_surf = TTF_RenderText_Blended(font, text, clr);
 	if (!text_surf) return;
 
+	switch (ta)
+	{
+		case TA_LEFT:
+			rect.x = x;
+			break;
+		case TA_CENTER:
+			rect.x = x + (w - text_surf->w) / 2;
+			break;
+		case TA_RIGHT:
+			rect.x = x + w - text_surf->w;
+			break;
+	}
+	rect.y = y;
+	
 	SDL_BlitSurface(text_surf, 0, pscreen, &rect);
 	
 	SDL_FreeSurface(text_surf);
@@ -350,7 +363,7 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 	
 	m3d_clear(M3D_COLOR_BUFFER_BIT | M3D_DEPTH_BUFFER_BIT);
 
-	float dif[] = {0.2, 0.4, 1.0, 1.0};
+	float dif[] = {0.2, 0.4, 1.0, 0.5};
 	float spec[] = {1, 1, 1, 1};
 	m3d_materialv(M3D_DIFFUSE, dif);
 	m3d_materialv(M3D_SPECULAR, spec);
@@ -358,7 +371,7 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 
 	m3d_matrix_mode(M3D_MODELVIEW);
 	m3d_load_identity();
-	m3d_translate(0, 0, 800);
+	m3d_translate(0, 0, 1200);
 	m3d_rotate(t, 0, 1, 0);
 	//m3d_rotate(-90, 1, 0, 0);
 
@@ -366,8 +379,11 @@ void render_effect(int x, int y, int alpha_test, unsigned char alpha_ref, int al
 
 	if (alpha_test)
 	{
-		blit_effect_alpha_test(x, y, alpha_ref);
-		if (alpha_blend)
+		if (!alpha_blend)
+		{
+			blit_effect_alpha_test(x, y, alpha_ref);
+		}
+		else
 		{
 			blit_effect_alpha_blend(x, y, alpha_ref);
 		}

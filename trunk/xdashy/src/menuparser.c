@@ -106,7 +106,7 @@ static unsigned int remove_spaces(char *buffer, unsigned int len)
 		}
 		else
 		{
-			if (c!='\t' && c!='\n' && c!=' ')
+			if (c!='\t' && c!=0x0A && c!=0x0D && c!=' ')
 			{
 				buffer[write_pos] = c;
 				write_pos ++;

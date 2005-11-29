@@ -29,7 +29,9 @@ int init_gfx(const char *bg_file, const char *font_file, int font_height,
 void render_background();
 void close_gfx();
 void gfx_flip();
-void render_text(int x, int y, char *text, float r, float g, float b);
+void render_text(int x, int y, int w, char *text, 
+				float r, float g, float b,
+				enum TextAlign ta);
 void render_quad(int x, int y, int w, int h, float r, float g, float b);
 void set_clip_rect(int x, int y, int w, int h);
 

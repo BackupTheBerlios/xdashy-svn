@@ -38,6 +38,7 @@ struct state {
 	float clear_depth;
 
 	vec3 lpos[4];
+	float material_alpha;
 	vec3 ambient, diffuse, specular;
 	float shininess;
 
@@ -189,6 +190,7 @@ void m3d_materialv(unsigned int pname, float *params) {
 		break;
 
 	case M3D_DIFFUSE:
+		state.material_alpha = params[3];
 		memcpy(&state.diffuse, params, 3 * sizeof(float));
 		break;
 
@@ -414,6 +416,7 @@ void m3d_vertex(float x, float y, float z) {
 		v->r = fixedf(col.x);
 		v->g = fixedf(col.y);
 		v->b = fixedf(col.z);
+		v->a = fixedf(state.material_alpha);
 	}
 	
 	// transform into post-projective homogeneous clip-space

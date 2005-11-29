@@ -38,4 +38,9 @@ void xdashy_close();
 // font height of the generated font.
 void xdashy_set_font_height(unsigned int h);
 
+enum TextAlign
+{
+	TA_LEFT, TA_CENTER, TA_RIGHT
+};
+
 #endif /* ndef _XDASHY_HEADER_ */

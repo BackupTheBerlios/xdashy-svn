@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /* xdashy.c
  */
 
+#include "xdashy.h"
 #include "menu.h"
 #include <stdio.h>
 #include <string.h>
@@ -46,6 +47,8 @@ struct settings
 	rect client_area;
 	rect title_area;
 	rect effect_area;
+
+	enum TextAlign text_align;
 	
 	float text_r;
 	float text_g;
@@ -125,6 +128,17 @@ static void get_color(MenuItem *item, float *r, float *g, float *b)
 	*r = R;
 	*g = G;
 	*b = B;
+}
+
+static enum TextAlign get_text_align(MenuItem *item)
+{
+	if (!item) return TA_LEFT;
+
+	if (!strcmp(item->launch, "left")) return TA_LEFT;
+	if (!strcmp(item->launch, "center")) return TA_CENTER;
+	if (!strcmp(item->launch, "right")) return TA_RIGHT;
+
+	return TA_LEFT;
 }
 
 int xdashy_load_settings()
@@ -218,11 +232,15 @@ int xdashy_load_settings()
 		item2 = MenuItem_get_item(item, "alpha test");
 		if (item2) settings.fx_alpha_test = get_bool(item2->launch);
 		item2 = MenuItem_get_item(item, "alpha ref");
-		if (item2) settings.fx_alpha_ref = atoi(item2->launch);
+		if (item2) settings.fx_alpha_ref = (int)(255 * atof(item2->launch));
 		item2 = MenuItem_get_item(item, "alpha blend");
 		if (item2) settings.fx_alpha_blend = get_bool(item2->launch);
 	}
 
+	/* loa text align */
+	settings.text_align = get_text_align(MenuItem_get_item(settings_file, 
+		"text align"));
+	
 	/* load colors */
 	get_color(MenuItem_get_item(settings_file, "text color"),
 					&settings.text_r, 
@@ -340,10 +358,12 @@ void xdashy_render()
 			settings.title_area.w, settings.title_area.h);
 	
 	render_text(settings.title_area.x, settings.title_area.y,
+				settings.title_area.w,
 				xstate.root_menu->title,
 				settings.text_r,
 				settings.text_g,
-				settings.text_b);
+				settings.text_b,
+				settings.text_align);
 	
 	/* set clip rect to client area */
 	set_clip_rect(settings.client_area.x, settings.client_area.y,
@@ -365,20 +385,24 @@ void xdashy_render()
 			render_text(settings.client_area.x, 
 					settings.client_area.y + 
 					settings.font_height * i + xstate.menu_scroll,
+					settings.client_area.w,
 					xstate.root_menu->children[i]->title,
 					settings.selected_text_r, 
 					settings.selected_text_g, 
-					settings.selected_text_b);
+					settings.selected_text_b,
+					settings.text_align);
 		}
 		else
 		{
 			render_text(settings.client_area.x, 
 					settings.client_area.y + 
 					settings.font_height * i + xstate.menu_scroll,
+					settings.client_area.w,
 					xstate.root_menu->children[i]->title,
 					settings.text_r, 
 					settings.text_g, 
-					settings.text_b);
+					settings.text_b,
+					settings.text_align);
 		}
 	}
 	
